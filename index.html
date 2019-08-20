@@ -1,0 +1,1392 @@
+<!-- Ashley He (ach238), Leandro Dorta Duque (ld443) -->
+<!-- CS 3300,  11 April 2019 -->
+<!-- IPEDS Longitude Latitude Data: https://nces.ed.gov/ipeds/datacenter/DataFiles.aspx -->
+<!-- College Statistics: https://www.kaggle.com/samsonqian/college-admissions -->
+<!-- College Median Starting Salaries + other salary data: https://www.kaggle.com/wsj/college-salaries -->
+
+<html>
+
+<head>
+
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://d3js.org/d3.v5.min.js"></script>
+  <script src="https://d3js.org/topojson.v2.min.js"></script>
+
+  <style>
+    body {
+      width: 100%;
+      font-family: "Lato";
+    }
+    .container {
+    width: 1400px;
+}
+
+    h3 {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .state {
+      fill: white;
+      stroke: none;
+    }
+
+    .state-outline {
+      stroke: black;
+      stroke-width: 2px;
+      fill: none;
+    }
+
+    .graticule {
+      fill: none;
+      stroke: lightgrey;
+    }
+
+
+    .gridlines line {
+      stroke: #bbb;
+    }
+
+    .gridlines .domain {
+      stroke: none;
+    }
+
+    .slider {
+      fill: #ff99ff;
+      stroke: #cc00cc;
+      stroke-width: 1px;
+      opacity: 0.7;
+    }
+
+    #usaMap {
+      margin-left: 50px;
+      display: block;
+      float: left;
+    }
+
+    #sliderpanel {
+      width: 400px;
+      height: 800px;
+      margin: 0px 60px 0px 0px;
+      display: block;
+      float: right;
+
+    }
+
+    .button {
+      background-color: lightgrey;
+      border: 1px solid grey;
+      color: black;
+      padding: 10px 16px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-family: "Lato";
+      font-size: 14px;
+      margin: 0px 2px 0px 2px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    #clear1,
+    #clear2,
+    #clear3 {
+      padding: 5px 8px;
+      background-color: white;
+    }
+
+    #reset {
+      background-color: #ff9991;
+    }
+
+    #private {
+      background-color: blue;
+      color: white;
+    }
+
+    #public {
+      background-color: yellow;
+      color: black;
+
+    }
+
+    #buttonGroup1,
+    #buttonGroup2,
+    #buttonGroup3 {
+      margin: 5px;
+    }
+
+    .container {
+      position: relative;
+    }
+
+    #mybuttons1 {
+      position: absolute;
+      left: 50;
+      bottom: -625;
+    }
+
+    #mybuttons2 {
+      position: absolute;
+      left: 300;
+      bottom: -625;
+    }
+
+    div.tooltip {
+      position: absolute;
+      text-align: center;
+      padding: 4px;
+      width: 150px;
+      height: 180px;
+      font-size: 12px;
+      background: #f6fbfc;
+      border: 1px solid grey;
+      border-radius: 8px;
+      pointer-events: none;
+    }
+
+    #usa {
+      margin: 30px;
+    }
+  </style>
+
+</head>
+
+<body>
+  <div id="info">
+    <div style="text-align:center;">
+      <svg id="summaryInfo" height="100" , width="800"></svg></div>
+  </div>
+
+  <div class="container">
+    <div id="usaMap">
+      <svg id="usa" height="450" width="750" style="background: #sff;">
+      </svg>
+    </div>
+
+    <div id="sliderPanel">
+      <h4>
+        Click and drag to select your specifications below,
+        or click off the selected area to clear the slider:
+      </h4>
+      <div id="sliders" height="75" width="200">
+      </div>
+    </div>
+
+    <div id="mybuttons1">
+      <!-- Private/Public -->
+      <text>Private or Public (select one):</text>
+      <div id="buttonGroup1">
+        <button onclick="document.getElementById('public').disabled=true;" class="button" id="private">Private</button>
+        <button onclick="document.getElementById('private').disabled=true;" class="button" id="public">Public</button>
+      </div>
+
+      <!-- clear all button -->
+      <text>Clear all selected filters</text>
+      <div id="buttonGroup3">
+        <button onclick="document.getElementById('private').disabled=false;
+        document.getElementById('public').disabled=false;
+        document.getElementById('liberalArts').disabled=false;
+        document.getElementById('party').disabled=false;
+        document.getElementById('engineering').disabled=false;
+        document.getElementById('state').disabled=false;
+        document.getElementById('ivy').disabled=false;
+        document.getElementById('california').disabled=false;
+        document.getElementById('midwestern').disabled=false;
+        document.getElementById('northeastern').disabled=false;
+        document.getElementById('southern').disabled=false;
+        document.getElementById('western').disabled=false;" 
+        class="button" id="reset">Clear All</button>
+
+      </div>
+    </div>
+
+    <div id="mybuttons2">
+      <!-- Type of School -->
+      <text>Type of School (select one):</text>
+      <div id="buttonGroup2">
+        <button onclick="document.getElementById('party').disabled=true;
+        document.getElementById('engineering').disabled=true;
+        document.getElementById('state').disabled=true;
+        document.getElementById('ivy').disabled=true;" 
+        class="button" id="liberalArts">Liberal Arts</button>
+        <button onclick="document.getElementById('liberalArts').disabled=true;
+        document.getElementById('engineering').disabled=true;
+        document.getElementById('state').disabled=true;
+        document.getElementById('ivy').disabled=true;" 
+        class="button" id="party">Party</button>
+        <button onclick="document.getElementById('liberalArts').disabled=true;
+        document.getElementById('party').disabled=true;
+        document.getElementById('state').disabled=true;
+        document.getElementById('ivy').disabled=true;" 
+        class="button" id="engineering">Engineering</button>
+        <button onclick="document.getElementById('party').disabled=true;
+        document.getElementById('liberalArts').disabled=true;
+        document.getElementById('engineering').disabled=true;
+        document.getElementById('ivy').disabled=true;" 
+        class="button" id="state">State</button>
+        <button onclick="document.getElementById('party').disabled=true;
+        document.getElementById('engineering').disabled=true;
+        document.getElementById('state').disabled=true;
+        document.getElementById('liberalArts').disabled=true;" 
+        class="button" id="ivy">Ivy League</button>
+
+      </div>
+      <!-- Geographic Region -->
+      <text>Geographic Region (select one):</text>
+      <div id="buttonGroup3">
+        <button onclick="document.getElementById('midwestern').disabled=true;
+        document.getElementById('northeastern').disabled=true;
+        document.getElementById('southern').disabled=true;
+        document.getElementById('western').disabled=true;" 
+        class="button" id="california">California</button>
+        <button onclick="document.getElementById('california').disabled=true;
+        document.getElementById('northeastern').disabled=true;
+        document.getElementById('southern').disabled=true;
+        document.getElementById('western').disabled=true;" 
+        class="button" id="midwestern">Midwestern</button>
+        <button onclick="document.getElementById('california').disabled=true;
+        document.getElementById('midwestern').disabled=true;
+        document.getElementById('southern').disabled=true;
+        document.getElementById('western').disabled=true;" 
+        class="button" id="northeastern">Northeastern</button>
+        <button onclick="document.getElementById('california').disabled=true;
+        document.getElementById('midwestern').disabled=true;
+        document.getElementById('northeastern').disabled=true;
+        document.getElementById('western').disabled=true;" 
+        class="button" id="southern">Southern</button>
+        <button onclick="document.getElementById('california').disabled=true;
+        document.getElementById('midwestern').disabled=true;
+        document.getElementById('northeastern').disabled=true;
+        document.getElementById('southern').disabled=true;" 
+        class="button" id="western">Western</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+
+    // Title and summary info
+
+    var summaryInfo = d3.select("#summaryInfo");
+    var summaryInfo2 = d3.select("#summaryInfo2");
+    let widthInfo = summaryInfo.attr("width"), heightInfo = summaryInfo.attr("height");
+
+    summaryInfo.append("text")
+      .attr("x", widthInfo / 2)
+      .attr("y", 40)
+      .style("font-size", "36px")
+      .style("font-weight", "bold")
+      .style("letter-spacing", "0.5px")
+      .style("text-transform", "uppercase")
+      .attr("alignment-baseline", "middle")
+      .attr("text-anchor", "middle")
+      .text("College Navigator")
+    summaryInfo.append("text")
+      .append("tspan")
+      .style("font-weight", "500")
+      .style("font-size", "15px")
+      .attr("x", widthInfo / 2)
+      .attr("y", 60)
+      .attr("dy", 15)
+      .attr("alignment-baseline", "middle")
+      .attr("text-anchor", "middle")
+      .text("Find your ideal college based on your given specifications; hover over each circle for more information.")
+
+    // track which button filters are clicked
+    
+    var publicClicked = false;
+    var privateClicked = false;
+
+    var LAClicked = false;
+    var partyClicked = false;
+    var engineeringClicked = false;
+    var stateClicked = false;
+    var ivyClicked = false;
+
+    var californiaClicked = false;
+    var midwesternClicked = false;
+    var northeasternClicked = false;
+    var southernClicked = false;
+    var westernClicked = false;
+
+    var resetClicked = false;
+
+    // track filters applied on histogram sliders
+    var appliedFilters = {};
+
+    // Start building the map
+    const requestData = async () => {
+
+      // Get a map of the USA
+      //  State codes: https://www2.census.gov/geo/docs/reference/state.txt
+      //  County codes: https://www2.census.gov/geo/docs/reference/codes/files/national_county.txt
+      const us = await d3.json("us.json");
+      //console.log(us);
+
+      // From lecture example
+      // Filtered to contiguous 48 states, no data in our dataset relating to Alaska and Hawaii so we'll ignore them
+      let filteredStates = ['02', '15', '60', '66', '69', '72', '74', '78'];
+      // Loop through state geometries and filter by id (padding with leading zeroes because they are stored as ints in the json)
+      us.objects.states.geometries = us.objects.states.geometries.filter(d => {
+        return filteredStates.indexOf(d.id.toString().padStart(2, '0')) === -1;
+      });
+
+      const states = topojson.feature(us, us.objects.states);
+      const statesMesh = topojson.mesh(us, us.objects.states);
+
+      let map = d3.select("#usa");
+      let projection = d3.geoAlbers().fitSize([map.attr("width"), map.attr("height")], states);
+      let path = d3.geoPath().projection(projection);
+      let viewport = map.append("g");
+
+      // Add paths for the states
+      viewport.append("path")
+        .attr("class", "graticule")
+        .attr("d", path(d3.geoGraticule10()));
+      viewport.selectAll(".state").data(states.features)
+        .enter()
+        .append("path")
+        .attr("class", "state")
+        .attr("d", path);
+      viewport.append("path")
+        .datum(statesMesh)
+        .attr("class", "state-outline")
+        .attr("d", path);
+
+      // Get College data
+      const colleges = await d3.csv("College-stats.csv", d3.autoType);
+
+      colleges.forEach(d => {
+        // Get college positions (coordinates)
+        d["position"] = projection([d.Longitude, d.Latitude]);
+      });
+
+      // Create tooltip
+      var tooltip = d3.select("body")
+        .append("div")
+        .attr("id", "tooltip")
+        .attr("class", "tooltip")
+        .style("position", "absolute")
+        .style("z-index", "5")
+        .style("visibility", "hidden");
+
+      // Append circles to the map for each college, blue for private, yellow for public
+      // Added additional attributes here to be used for filtering later
+      map.selectAll("circle").data(colleges)
+        .enter()
+        .append("circle")
+        .attr("r", 4)
+        .attr("opacity", 0.8)
+        .attr("cx", d => d.position[0])
+        .attr("cy", d => d.position[1])
+        .attr("priv_pub", d => (d.priv_pub == "Private") ? "Private" : "Public")
+        .attr("school_type", d => d.school_type)
+        .attr("region", d => d.region)
+        .attr("school_name", d => d.school_name)
+        .attr("logo", d => d.logo)
+        .attr("admittance", d => d["% Admitted (total)"])
+        .attr("tuition", d => d["Tuition and Fees"])
+        .attr("salary", d => d["Starting Median Salary"])
+        .attr("fill", d => (d.priv_pub == "Private") ? "blue" : "yellow");
+
+
+      // Tooltip interaction on hover
+      map.selectAll("circle").each(function () {
+        let circle = d3.select(this);
+        
+        // on mouseover, display tooltip and increase circle size
+        circle.on("mouseover", function () {
+          // label the school
+          let school = d3.select(this);
+          if (school.attr("opacity") >= 0.8) {
+            d3.select(this)
+              .transition().duration(100)
+              .attr("r", 8)
+              .attr("stroke", "black");
+
+            // Add the school's logo to the tooltip
+            let school_logo_ref = school.attr("logo");
+            let school_logo = "<img src='" + school_logo_ref + "' width='50' heigth='50'>";
+
+            // Add additional information about the school to the tooltip
+            tooltip.html(school_logo);
+            tooltip.append("div").text(school.attr("school_name"))
+              .style("vertical-align", "middle")
+              .style("horizontal-align", "left");
+            tooltip.append("div").text(school.attr("priv_pub"))
+              .style("vertical-align", "middle")
+              .style("horizontal-align", "left");
+            tooltip.append("div").text("Type: " + school.attr("school_type"))
+              .style("vertical-align", "middle")
+              .style("horizontal-align", "left");
+            tooltip.append("div").text("Region: " + school.attr("region"))
+              .style("vertical-align", "middle")
+              .style("horizontal-align", "left");
+            tooltip.append("div").text("Admittance: " + school.attr("admittance") + "%")
+              .style("vertical-align", "middle")
+              .style("horizontal-align", "left");
+            tooltip.append("div").text("Tuition: $" + school.attr("tuition"))
+              .style("vertical-align", "middle")
+              .style("horizontal-align", "left");
+              tooltip.append("div").text("Starting Median Salary: $" + school.attr("salary"))
+              .style("vertical-align", "middle")
+              .style("horizontal-align", "left");
+            return tooltip.style("visibility", "visible");
+          }
+        });
+
+        // on mouse movement, reposition the tooltip
+        circle.on("mousemove", function () {
+          return tooltip.style("top", (d3.event.pageY - 25)).style("left", (d3.event.pageX + 10));
+        });
+
+        // on mouseout
+        circle.on("mouseout", function () {
+          d3.select(this)
+            .transition().duration(100)
+            .attr("r", 4)
+            .attr("stroke", "grey")
+          // remove the tooltip
+          return tooltip.style("visibility", "hidden");
+        });
+      });
+
+      // end tooltip
+
+      //////////////// CODE TO MAKE THE BRUSHABLE SLIDERS \\\\\\\\\\\\\\\\\\\\\
+
+      function createSlider(property) {
+
+        // get array of values for the specified property in colleges dataset
+        let values = colleges.map(d => d[property]);
+        let minMax = d3.extent(values);
+
+        let sliderWidth = parseFloat(d3.select("#sliders").style("width"));
+        let sliderHeight = 80;
+
+        let xScale = d3.scaleLinear().domain(minMax).range([10, sliderWidth - 10]);
+        let xAxis = d3.axisBottom(xScale).tickFormat(d3.format(".2s"));
+
+        let container = d3.select("#sliders").append("div").attr("class", "control");
+        // label with whatever property matches the slider
+        let label = container.append("div").text(property + ":");
+        let canvas = container.append("svg").attr("width", sliderWidth).attr("height", sliderHeight).style("margin", 8);
+
+        // add an axis for the slider
+        let sliderAxis = canvas.append("g")
+          .attr("transform", "translate(" + 0 + "," + (sliderHeight - 18) + ")")
+          .call(xAxis);
+
+        // Separate values into bins 
+        let numBins = 20;
+        let counts = d3.histogram().domain(minMax).thresholds(numBins)(values);
+
+        let yScale = d3.scaleLinear().domain(d3.extent(counts, d => d.length))
+          .range([sliderHeight - 18, 10]);
+
+        counts.forEach(d => {
+          d.xM = (d.x0 + d.x1) / 2.0; // compute midpoints
+        });
+        // Fixes for edges
+        counts.unshift({ xM: counts[0].x0, length: counts[0].length }); // start at first x0
+        counts.push({ xM: counts[counts.length - 1].x1, length: counts[counts.length - 1].length }); // end at last x1
+
+        let slider = d3.area().x(d => xScale(d.xM))
+          .y0(yScale(0))
+          .y1(d => yScale(d.length))
+          .curve(d3.curveNatural);
+
+        let histogram = canvas.append("g").append("path").datum(counts)
+          .attr("class", "slider")
+          .attr("d", slider);
+        
+        // fix for the admittance histogram
+        if (property == "% Admitted (total)") {
+          histogram.attr("transform", "translate(" + 0 + "," + (-7) + ")")
+        }
+        
+        // brush along the X axis
+        var brush = d3.brushX()
+          .extent(
+            [[10, 0], [sliderWidth - 10, sliderHeight - 18]]
+          )
+          .on("brush end", brushed); // call function on "brush" and on "end"
+
+        function brushed() {
+
+          if (d3.event.selection !== null) {
+
+            var start = xScale.invert(d3.event.selection[0]);
+            var end = xScale.invert(d3.event.selection[1]);
+
+            let newFilter = d => d[property] >= start && d[property] <= end;
+            appliedFilters[property] = newFilter;
+          }
+
+          else {
+            let newFilter = function () { return true; }
+            appliedFilters[property] = newFilter;
+          }
+          updateResults();
+
+        }
+
+        // call the brush so it shows up
+        canvas.append("g").attr("class", "brush")
+          .call(brush);
+
+      } // END BRUSHABLE SLIDERS CODE
+
+
+      // creating sliders for each of the numerical attributes
+      createSlider("Total Enrollment");
+      createSlider("Tuition and Fees");
+      createSlider("Starting Median Salary");
+      createSlider("% Admitted (total)");
+
+      // test a given school against applied filters
+      function checkFilters(d) {
+        let meetsFilter = true;
+        d3.values(appliedFilters).forEach(filter => {
+          meetsFilter = filter(d) && meetsFilter;
+        });
+        return meetsFilter;
+      }
+
+      // check all filters and update circles accordingly
+      function updateResults() {
+        // if private school selected
+        if (privateClicked == true) {
+          // if its not private, set opacity to 0.1 
+          map.selectAll("circle")
+            .attr("opacity", d => (checkFilters(d)) ? 0.8 : 0.1)
+            .attr("stroke", d => (checkFilters(d)) ? "grey" : "none");
+          // then check the next layer...
+          if (LAClicked == true) {
+            map.selectAll("circle").each(function () {
+              let circle = d3.select(this);
+              circle.attr("opacity", ((circle.attr("school_type") == "Liberal Arts") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+            });
+            if (californiaClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "California") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (midwesternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Midwestern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (northeasternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Northeastern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (southernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Southern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (westernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Western") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+
+          } // end LA clicked
+          else if (partyClicked == true) {
+            map.selectAll("circle").each(function () {
+              let circle = d3.select(this);
+              circle.attr("opacity", ((circle.attr("school_type") == "Party") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+            });
+            if (californiaClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "California") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (midwesternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Midwestern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (northeasternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Northeastern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (southernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Southern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (westernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Western") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+          }
+          else if (engineeringClicked == true) {
+            map.selectAll("circle").each(function () {
+              let circle = d3.select(this);
+              circle.attr("opacity", ((circle.attr("school_type") == "Engineering") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+            });
+            if (californiaClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "California") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (midwesternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Midwestern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (northeasternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Northeastern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (southernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Southern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (westernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Western") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+          }
+          else if (stateClicked == true) {
+            map.selectAll("circle").each(function () {
+              let circle = d3.select(this);
+              circle.attr("opacity", ((circle.attr("school_type") == "State") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+            });
+            if (californiaClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "California") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (midwesternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Midwestern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (northeasternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Northeastern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (southernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Southern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (westernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Western") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+          }
+          else if (ivyClicked == true) {
+            map.selectAll("circle").each(function () {
+              let circle = d3.select(this);
+              circle.attr("opacity", ((circle.attr("school_type") == "Ivy League") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+            });
+            if (californiaClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "California") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (midwesternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Midwestern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (northeasternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Northeastern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (southernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Southern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (westernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Western") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+          }
+
+          map.selectAll("circle").each(function () {
+            let circle = d3.select(this);
+            circle.attr("opacity", ((circle.attr("priv_pub") == "Private") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+          });
+          // next layer...
+          if (californiaClicked == true) {
+            map.selectAll("circle").each(function () {
+              let circle = d3.select(this);
+              circle.attr("opacity", ((circle.attr("region") == "California") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+            });
+          }
+          else if (midwesternClicked == true) {
+            map.selectAll("circle").each(function () {
+              let circle = d3.select(this);
+              circle.attr("opacity", ((circle.attr("region") == "Midwestern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+            });
+          }
+          else if (northeasternClicked == true) {
+            map.selectAll("circle").each(function () {
+              let circle = d3.select(this);
+              circle.attr("opacity", ((circle.attr("region") == "Northeastern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+            });
+          }
+          else if (southernClicked == true) {
+            map.selectAll("circle").each(function () {
+              let circle = d3.select(this);
+              circle.attr("opacity", ((circle.attr("region") == "Southern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+            });
+          }
+          else if (westernClicked == true) {
+            map.selectAll("circle").each(function () {
+              let circle = d3.select(this);
+              circle.attr("opacity", ((circle.attr("region") == "Western") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+            });
+          }
+
+        }
+        // if public school selected
+        else if (publicClicked == true) {
+          map.selectAll("circle")
+            .attr("opacity", d => (checkFilters(d)) ? 0.8 : 0.1)
+            .attr("stroke", d => (checkFilters(d)) ? "grey" : "none");
+          // then check the next layer...
+          if (LAClicked == true) {
+            map.selectAll("circle").each(function () {
+              let circle = d3.select(this);
+              circle.attr("opacity", ((circle.attr("school_type") == "Liberal Arts") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+            });
+            // next layer...
+            if (californiaClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "California") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (midwesternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Midwestern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (northeasternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Northeastern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (southernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Southern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (westernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Western") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+          }
+          else if (partyClicked == true) {
+            map.selectAll("circle").each(function () {
+              let circle = d3.select(this);
+              circle.attr("opacity", ((circle.attr("school_type") == "Party") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+            });
+            // next layer...
+            if (californiaClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "California") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (midwesternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Midwestern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (northeasternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Northeastern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (southernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Southern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (westernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Western") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+          }
+          else if (engineeringClicked == true) {
+            map.selectAll("circle").each(function () {
+              let circle = d3.select(this);
+              circle.attr("opacity", ((circle.attr("school_type") == "Engineering") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+            });
+            // next layer...
+            if (californiaClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "California") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (midwesternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Midwestern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (northeasternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Northeastern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (southernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Southern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (westernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Western") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+          }
+          else if (stateClicked == true) {
+            map.selectAll("circle").each(function () {
+              let circle = d3.select(this);
+              circle.attr("opacity", ((circle.attr("school_type") == "State") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+            });
+            // next layer...
+            if (californiaClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "California") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (midwesternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Midwestern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (northeasternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Northeastern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (southernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Southern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (westernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Western") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+          }
+          else if (ivyClicked == true) {
+            map.selectAll("circle").each(function () {
+              let circle = d3.select(this);
+              circle.attr("opacity", ((circle.attr("school_type") == "Ivy League") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+            });
+            // next layer...
+            if (californiaClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "California") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (midwesternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Midwestern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (northeasternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Northeastern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (southernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Southern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (westernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Western") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+          }
+
+          map.selectAll("circle").each(function () {
+            let circle = d3.select(this);
+            circle.attr("opacity", ((circle.attr("priv_pub") == "Public") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+          });
+          // next layer...
+          if (californiaClicked == true) {
+            map.selectAll("circle").each(function () {
+              let circle = d3.select(this);
+              circle.attr("opacity", ((circle.attr("region") == "California") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+            });
+          }
+          else if (midwesternClicked == true) {
+            map.selectAll("circle").each(function () {
+              let circle = d3.select(this);
+              circle.attr("opacity", ((circle.attr("region") == "Midwestern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+            });
+          }
+          else if (northeasternClicked == true) {
+            map.selectAll("circle").each(function () {
+              let circle = d3.select(this);
+              circle.attr("opacity", ((circle.attr("region") == "Northeastern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+            });
+          }
+          else if (southernClicked == true) {
+            map.selectAll("circle").each(function () {
+              let circle = d3.select(this);
+              circle.attr("opacity", ((circle.attr("region") == "Southern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+            });
+          }
+          else if (westernClicked == true) {
+            map.selectAll("circle").each(function () {
+              let circle = d3.select(this);
+              circle.attr("opacity", ((circle.attr("region") == "Western") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+            });
+          }
+        }
+
+        // if neither public nor private was selected
+        else {
+          map.selectAll("circle")
+            .attr("opacity", d => (checkFilters(d)) ? 0.8 : 0.1)
+            .attr("stroke", d => (checkFilters(d)) ? "grey" : "none")
+
+          // check the next layer...
+          if (LAClicked == true) {
+            map.selectAll("circle").each(function () {
+              let circle = d3.select(this);
+              circle.attr("opacity", ((circle.attr("school_type") == "Liberal Arts") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+            });
+            // next layer...
+            if (californiaClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "California") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (midwesternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Midwestern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (northeasternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Northeastern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (southernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Southern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (westernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Western") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+          }
+          else if (partyClicked == true) {
+            map.selectAll("circle").each(function () {
+              let circle = d3.select(this);
+              circle.attr("opacity", ((circle.attr("school_type") == "Party") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+            });
+            // next layer...
+            if (californiaClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "California") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (midwesternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Midwestern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (northeasternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Northeastern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (southernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Southern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (westernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Western") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+          }
+          else if (engineeringClicked == true) {
+            map.selectAll("circle").each(function () {
+              let circle = d3.select(this);
+              circle.attr("opacity", ((circle.attr("school_type") == "Engineering") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+            });            // next layer...
+            if (californiaClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "California") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (midwesternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Midwestern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (northeasternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Northeastern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (southernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Southern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (westernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Western") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+          }
+          else if (stateClicked == true) {
+            map.selectAll("circle").each(function () {
+              let circle = d3.select(this);
+              circle.attr("opacity", ((circle.attr("school_type") == "State") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+            });            // next layer...
+            if (californiaClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "California") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (midwesternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Midwestern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (northeasternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Northeastern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (southernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Southern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (westernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Western") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+          }
+          else if (ivyClicked == true) {
+            map.selectAll("circle").each(function () {
+              let circle = d3.select(this);
+              circle.attr("opacity", ((circle.attr("school_type") == "Ivy League") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+            });            // next layer...
+            if (californiaClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "California") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (midwesternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Midwestern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (northeasternClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Northeastern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (southernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Southern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+            else if (westernClicked == true) {
+              map.selectAll("circle").each(function () {
+                let circle = d3.select(this);
+                circle.attr("opacity", ((circle.attr("region") == "Western") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+              });
+            }
+          }
+        } // end update results
+
+        ///////////////////////// button filtering \\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+        // Clear all button, reset circle opacities and all other buttons
+        d3.select("#reset").on("click", function () {
+          resetClicked = true;
+          // clear the histogram sliders
+          if (resetClicked) {
+            d3.selectAll(".brush").call(d3.brushX().move, null);
+            resetClicked = false;
+          }
+          // reset all the circle opacities
+          map.selectAll("circle").each(function () {
+            let circle = d3.select(this);
+            circle.attr("opacity", 0.8)
+              .attr("stroke", "grey")
+
+          })
+
+          publicClicked = false;
+          privateClicked = false;
+
+          LAClicked = false;
+          partyClicked = false;
+          stateClicked = false;
+          engineeringClicked = false;
+          ivyClicked = false;
+
+          californiaClicked = false;
+          midwesternClicked = false;
+          northeasternClicked = false;
+          southernClicked = false;
+          westernClicked = false;
+
+          // reset button colors
+          document.getElementById("private").style.backgroundColor = "blue";
+          document.getElementById("public").style.backgroundColor = "yellow";
+          document.getElementById("private").style.opacity = 1;
+          document.getElementById("public").style.opacity = 1;
+
+          document.getElementById("liberalArts").style.backgroundColor = "lightgrey";
+          document.getElementById("party").style.backgroundColor = "lightgrey";
+          document.getElementById("engineering").style.backgroundColor = "lightgrey";
+          document.getElementById("state").style.backgroundColor = "lightgrey";
+          document.getElementById("ivy").style.backgroundColor = "lightgrey";
+
+          document.getElementById("california").style.backgroundColor = "lightgrey";
+          document.getElementById("midwestern").style.backgroundColor = "lightgrey";
+          document.getElementById("northeastern").style.backgroundColor = "lightgrey";
+          document.getElementById("southern").style.backgroundColor = "lightgrey";
+          document.getElementById("western").style.backgroundColor = "lightgrey";
+
+        }); // end clear all button
+
+// private or public clicked
+
+        d3.select("#private").on("click", function () {
+          map.selectAll("circle").each(function () {
+            let circle = d3.select(this);
+            circle.attr("opacity", ((circle.attr("priv_pub") == "Private") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+
+          })
+          privateClicked = true;
+          this.style.opacity = 0.6;
+
+        });
+
+        d3.select("#public").on("click", function () {
+          map.selectAll("circle").each(function () {
+            let circle = d3.select(this);
+            circle.attr("opacity", ((circle.attr("priv_pub") == "Public") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+
+          })
+          publicClicked = true;
+          this.style.opacity = 0.6;
+        });
+
+        // type of school
+
+        d3.select("#liberalArts").on("click", function () {
+          map.selectAll("circle").each(function () {
+            let circle = d3.select(this);
+            circle.attr("opacity", ((circle.attr("school_type") == "Liberal Arts") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+
+          })
+          LAClicked = true;
+          this.style.backgroundColor = "lightgreen";
+        });
+
+        d3.select("#party").on("click", function () {
+          map.selectAll("circle").each(function () {
+            let circle = d3.select(this);
+            circle.attr("opacity", ((circle.attr("school_type") == "Party") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+
+          })
+          partyClicked = true;
+          this.style.backgroundColor = "lightgreen";
+        });
+        d3.select("#engineering").on("click", function () {
+          map.selectAll("circle").each(function () {
+            let circle = d3.select(this);
+            circle.attr("opacity", ((circle.attr("school_type") == "Engineering") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+
+          })
+          engineeringClicked = true;
+          this.style.backgroundColor = "lightgreen";
+        });
+        d3.select("#state").on("click", function () {
+          map.selectAll("circle").each(function () {
+            let circle = d3.select(this);
+            circle.attr("opacity", ((circle.attr("school_type") == "State") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+
+          })
+          stateClicked = true;
+          this.style.backgroundColor = "lightgreen";
+        });
+        d3.select("#ivy").on("click", function () {
+          map.selectAll("circle").each(function () {
+            let circle = d3.select(this);
+
+            circle.attr("opacity", ((circle.attr("school_type") == "Ivy League") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+
+          })
+          ivyClicked = true;
+          this.style.backgroundColor = "lightgreen";
+        });
+
+        // geographic region
+
+        d3.select("#california").on("click", function () {
+          map.selectAll("circle").each(function () {
+            let circle = d3.select(this);
+            circle.attr("opacity", ((circle.attr("region") == "California") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+
+          })
+          californiaClicked = true;
+          this.style.backgroundColor = "lightgreen";
+        });
+
+        d3.select("#midwestern").on("click", function () {
+          map.selectAll("circle").each(function () {
+            let circle = d3.select(this);
+            circle.attr("opacity", ((circle.attr("region") == "Midwestern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+
+          })
+          midwesternClicked = true;
+          this.style.backgroundColor = "lightgreen";
+        });
+        d3.select("#northeastern").on("click", function () {
+          map.selectAll("circle").each(function () {
+            let circle = d3.select(this);
+            circle.attr("opacity", ((circle.attr("region") == "Northeastern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+
+          })
+          northeasternClicked = true;
+          this.style.backgroundColor = "lightgreen";
+        });
+        d3.select("#southern").on("click", function () {
+          map.selectAll("circle").each(function () {
+            let circle = d3.select(this);
+            circle.attr("opacity", ((circle.attr("region") == "Southern") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+
+          })
+          southernClicked = true;
+          this.style.backgroundColor = "lightgreen";
+        });
+        d3.select("#western").on("click", function () {
+          map.selectAll("circle").each(function () {
+            let circle = d3.select(this);
+
+            circle.attr("opacity", ((circle.attr("region") == "Western") && (circle.attr("opacity") != 0.1)) ? 0.8 : 0.1)
+
+          })
+          westernClicked = true;
+          this.style.backgroundColor = "lightgreen";
+        });
+        ///////////// end button filtering \\\\\\\\\\\
+      }
+      updateResults();
+
+    }; // end requestData
+
+    requestData();
+
+  </script>
+
+</body>
